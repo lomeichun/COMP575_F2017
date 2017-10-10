@@ -140,6 +140,7 @@ int main(int argc, char **argv)
 void mobilityStateMachine(const ros::TimerEvent &)
 {
     std_msgs::String state_machine_msg;
+    std_msgs::String pose_msg;
 
     if ((simulation_mode == 2 || simulation_mode == 3)) // Robot is in automode
     {
