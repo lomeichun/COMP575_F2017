@@ -31,7 +31,7 @@
 
 
 using namespace std;
-
+//J
 // Random number generator
 random_numbers::RandomNumberGenerator *rng;
 
