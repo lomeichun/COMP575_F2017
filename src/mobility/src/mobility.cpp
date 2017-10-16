@@ -5,7 +5,7 @@
 #include <random_numbers/random_numbers.h>
 #include <tf/transform_datatypes.h>
 
-// ROS messages
+// ROS messages //J
 #include <std_msgs/Int16.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/String.h>
@@ -31,7 +31,7 @@
 
 
 using namespace std;
-//J
+
 // Random number generator
 random_numbers::RandomNumberGenerator *rng;
 
