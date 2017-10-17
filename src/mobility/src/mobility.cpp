@@ -314,7 +314,6 @@ void messageHandler(const std_msgs::String::ConstPtr& message)
 }
 void poseHandler(const std_msgs::String::ConstPtr& message)
 {
-	/*
 	size_t pos = 0;
 	std_msgs::String global_average_heading_msg;
 	std_msgs::String local_average_heading_msg;
@@ -438,7 +437,6 @@ void poseHandler(const std_msgs::String::ConstPtr& message)
 			cout << "no valid case";
 			break;
 	}
-	*/
 }
 void global_average_headingHandler(const std_msgs::String::ConstPtr& message)
 {
