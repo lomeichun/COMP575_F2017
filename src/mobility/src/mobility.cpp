@@ -26,8 +26,8 @@
 #include <signal.h>
 #include <math.h>
 
-#include <iostream>
-#include <string>
+//#include <iostream>
+//#include <string>
 
 
 using namespace std;
@@ -141,9 +141,9 @@ int main(int argc, char **argv)
     obstacleSubscriber = mNH.subscribe((rover_name + "/obstacle"), 10, obstacleHandler);
     odometrySubscriber = mNH.subscribe((rover_name + "/odom/ekf"), 10, odometryHandler);
     messageSubscriber = mNH.subscribe(("messages"), 10, messageHandler);
-    poseSubscriber = mNH.subscribe(("pose"), 1000, poseHandler);
-    global_average_headingSubscriber = mNH.subscribe(("global_average_heading"), 1000, poseHandler);
-    local_average_headingSubscriber = mNH.subscribe(("local_average_heading"), 1000, poseHandler);
+    poseSubscriber = mNH.subscribe(("pose"), 10, poseHandler);
+    global_average_headingSubscriber = mNH.subscribe(("global_average_heading"), 10, global_average_headingHandler);
+    local_average_headingSubscriber = mNH.subscribe(("local_average_heading"), 10, local_average_headingHandler);
 
     status_publisher = mNH.advertise<std_msgs::String>((rover_name + "/status"), 1, true);
     velocityPublish = mNH.advertise<geometry_msgs::Twist>((rover_name + "/velocity"), 10);
@@ -156,9 +156,9 @@ int main(int argc, char **argv)
     stateMachineTimer = mNH.createTimer(ros::Duration(mobility_loop_time_step), mobilityStateMachine);
     debug_publisher = mNH.advertise<std_msgs::String>("/debug", 1, true);
     messagePublish = mNH.advertise<std_msgs::String>(("messages"), 10 , true);
-    posePublish = mNH.advertise<std_msgs::String>(("pose"), 1000 , true);
-    global_average_headingPublish = mNH.advertise<std_msgs::String>(("global_average_heading"), 1000 , true);
-    local_average_headingPublish = mNH.advertise<std_msgs::String>(("local_average_heading"), 1000 , true);
+    posePublish = mNH.advertise<std_msgs::String>(("pose"), 10, true);
+    global_average_headingPublish = mNH.advertise<std_msgs::String>(("global_average_heading"), 10, true);
+    local_average_headingPublish = mNH.advertise<std_msgs::String>(("local_average_heading"), 10, true);
     
     ros::spin();
     return EXIT_SUCCESS;
@@ -205,11 +205,9 @@ void mobilityStateMachine(const ros::TimerEvent &)
         state_machine_msg.data = "WAITING, " + converter.str();
     }
     stateMachinePublish.publish(state_machine_msg);
-        //pose_msg.data = "I am ";
-        pose_msg.data = rover_name;
-        std::stringstream converter;
-        converter << " " << current_location.x << " " << current_location.y << " " << current_location.theta;
-	pose_msg.data = pose_msg.data +converter.str();
+        std::stringstream rover_info;
+        rover_info << rover_name << " " << current_location.x << " " << current_location.y << " " << current_location.theta;
+	pose_msg.data = rover_info.str();
     	posePublish.publish(pose_msg);
 }
 
@@ -316,6 +314,7 @@ void messageHandler(const std_msgs::String::ConstPtr& message)
 }
 void poseHandler(const std_msgs::String::ConstPtr& message)
 {
+	/*
 	size_t pos = 0;
 	std_msgs::String global_average_heading_msg;
 	std_msgs::String local_average_heading_msg;
@@ -439,6 +438,7 @@ void poseHandler(const std_msgs::String::ConstPtr& message)
 			cout << "no valid case";
 			break;
 	}
+	*/
 }
 void global_average_headingHandler(const std_msgs::String::ConstPtr& message)
 {
