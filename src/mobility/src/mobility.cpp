@@ -5,7 +5,7 @@
 #include <random_numbers/random_numbers.h>
 #include <tf/transform_datatypes.h>
 
-// ROS messages //J
+// ROS messages
 #include <std_msgs/Int16.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/String.h>
@@ -26,24 +26,10 @@
 #include <signal.h>
 #include <math.h>
 
-//#include <iostream>
-//#include <string>
-
-
 using namespace std;
 
 // Random number generator
 random_numbers::RandomNumberGenerator *rng;
-
-typedef struct
-{
-	float x;
-	float y;
-	float theta;
-	string name;
-	float dist_rover1;
-	float dist_rover2;
-}rover_pose_ori;
 
 
 
@@ -73,9 +59,6 @@ ros::Publisher status_publisher;
 ros::Publisher target_collected_publisher;
 ros::Publisher angular_publisher;
 ros::Publisher messagePublish;
-ros::Publisher posePublish;
-ros::Publisher global_average_headingPublish;
-ros::Publisher local_average_headingPublish;
 ros::Publisher debug_publisher;
 
 //Subscribers
@@ -84,9 +67,7 @@ ros::Subscriber modeSubscriber;
 ros::Subscriber targetSubscriber;
 ros::Subscriber obstacleSubscriber;
 ros::Subscriber odometrySubscriber;
-ros::Subscriber poseSubscriber;
-ros::Subscriber global_average_headingSubscriber;
-ros::Subscriber local_average_headingSubscriber;
+
 ros::Subscriber messageSubscriber;
 
 //Timers
@@ -110,14 +91,12 @@ void mobilityStateMachine(const ros::TimerEvent &);
 void publishStatusTimerEventHandler(const ros::TimerEvent &event);
 void killSwitchTimerEventHandler(const ros::TimerEvent &event);
 void messageHandler(const std_msgs::String::ConstPtr &message);
-void poseHandler(const std_msgs::String::ConstPtr &message);
-void global_average_headingHandler(const std_msgs::String::ConstPtr &message);
-void local_average_headingHandler(const std_msgs::String::ConstPtr &message);
 
 int main(int argc, char **argv)
 {
     gethostname(host, sizeof(host));
     string hostName(host);
+
     rng = new random_numbers::RandomNumberGenerator(); // instantiate random number generator
 
     if (argc >= 2)
@@ -141,9 +120,6 @@ int main(int argc, char **argv)
     obstacleSubscriber = mNH.subscribe((rover_name + "/obstacle"), 10, obstacleHandler);
     odometrySubscriber = mNH.subscribe((rover_name + "/odom/ekf"), 10, odometryHandler);
     messageSubscriber = mNH.subscribe(("messages"), 10, messageHandler);
-    poseSubscriber = mNH.subscribe(("pose"), 10, poseHandler);
-    global_average_headingSubscriber = mNH.subscribe(("global_average_heading"), 10, global_average_headingHandler);
-    local_average_headingSubscriber = mNH.subscribe(("local_average_heading"), 10, local_average_headingHandler);
 
     status_publisher = mNH.advertise<std_msgs::String>((rover_name + "/status"), 1, true);
     velocityPublish = mNH.advertise<geometry_msgs::Twist>((rover_name + "/velocity"), 10);
@@ -156,9 +132,6 @@ int main(int argc, char **argv)
     stateMachineTimer = mNH.createTimer(ros::Duration(mobility_loop_time_step), mobilityStateMachine);
     debug_publisher = mNH.advertise<std_msgs::String>("/debug", 1, true);
     messagePublish = mNH.advertise<std_msgs::String>(("messages"), 10 , true);
-    posePublish = mNH.advertise<std_msgs::String>(("pose"), 10, true);
-    global_average_headingPublish = mNH.advertise<std_msgs::String>(("global_average_heading"), 10, true);
-    local_average_headingPublish = mNH.advertise<std_msgs::String>(("local_average_heading"), 10, true);
     
     ros::spin();
     return EXIT_SUCCESS;
@@ -167,7 +140,6 @@ int main(int argc, char **argv)
 void mobilityStateMachine(const ros::TimerEvent &)
 {
     std_msgs::String state_machine_msg;
-    std_msgs::String pose_msg;
 
     if ((simulation_mode == 2 || simulation_mode == 3)) // Robot is in automode
     {
@@ -205,10 +177,6 @@ void mobilityStateMachine(const ros::TimerEvent &)
         state_machine_msg.data = "WAITING, " + converter.str();
     }
     stateMachinePublish.publish(state_machine_msg);
-        std::stringstream rover_info;
-        rover_info << rover_name << " " << current_location.x << " " << current_location.y << " " << current_location.theta;
-	pose_msg.data = rover_info.str();
-    	posePublish.publish(pose_msg);
 }
 
 void setVelocity(double linearVel, double angularVel)
@@ -310,137 +278,5 @@ void sigintEventHandler(int sig)
 }
 
 void messageHandler(const std_msgs::String::ConstPtr& message)
-{
-}
-void poseHandler(const std_msgs::String::ConstPtr& message)
-{
-	size_t pos = 0;
-	std_msgs::String global_average_heading_msg;
-	std_msgs::String local_average_heading_msg;
-	rover_pose_ori global_rover_value;
-	rover_pose_ori local_rover_value;
-	int i=0,dist_between;
-	std::stringstream converter;
-	std::stringstream converter1;
-	std::stringstream converter2;
-	converter << message->data;
-	std::string message1 = converter.str();
-	rover_pose_ori rovers[3];
-	std::string delimiter = " ";
-	std::string token;
-	rovers[0].name= "ajax";
-	rovers[1].name= "achilles";
-	rovers[2].name= "aeneas";
-	pos = message1.find(delimiter);
-	token = message1.substr(0, pos);
-	for(i=0;i<3;i++){
-		if (token.compare(rovers[i].name)==0)
-			break;
-	}
-	//rovers[0].name=token;
-	message1.erase(0, pos + delimiter.length());
-	if(pos !=std::string::npos){
-		pos = message1.find(delimiter);
-		token = message1.substr(0, pos);
-		//rovers[i].x=std::stof(token);
-		rovers[i].x=atof(token.c_str());
-	}
-	message1.erase(0, pos + delimiter.length());
-	if(pos !=std::string::npos){
-		pos = message1.find(delimiter);
-		token = message1.substr(0, pos);
-		//rovers[i].y=std::stof(token);
-		rovers[i].y=atof(token.c_str());
-	}
-	message1.erase(0, pos + delimiter.length());
-	if(pos !=std::string::npos){
-		pos = message1.find(delimiter);
-		token = message1.substr(0, pos);
-		//rovers[i].theta=std::stof(token);
-		rovers[i].theta=atof(token.c_str());
-	}
-	global_rover_value.name="global";
-	global_rover_value.x=(rovers[1].x+rovers[2].x+rovers[0].x)/3;
-	global_rover_value.y=(rovers[1].y+rovers[2].y+rovers[0].y)/3;
-	global_rover_value.theta=atan2((cos(rovers[0].theta)+cos(rovers[1].theta)+cos(rovers[2].theta))/3,(sin(rovers[0].theta)+sin(rovers[1].theta)+sin(rovers[2].theta))/3);
-	converter1 << global_rover_value.name << " " << global_rover_value.x << " " << global_rover_value.y << " " << global_rover_value.theta;
-	global_average_heading_msg.data = converter1.str();	
-	//global_average_heading_msg.data = message1;	
-	global_average_headingPublish.publish(global_average_heading_msg);
-	switch(i){
-		case 0:
-			rovers[i].dist_rover1=sqrt((pow((current_location.x-rovers[1].x),2))+(pow((current_location.x-rovers[1].x),2)));
-			rovers[i].dist_rover2=sqrt((pow((current_location.x-rovers[2].x),2))+(pow((current_location.x-rovers[2].x),2)));
-			if((rovers[i].dist_rover1<=2)&&(rovers[i].dist_rover2<=2)){
-				local_rover_value.x=(rovers[1].x+rovers[2].x+current_location.x)/3;
-				local_rover_value.y=(rovers[1].y+rovers[2].y+current_location.y)/3;
-				local_rover_value.theta=atan2((cos(current_location.theta)+cos(rovers[1].theta)+cos(rovers[2].theta))/3,(sin(current_location.theta)+sin(rovers[1].theta)+sin(rovers[2].theta))/3);
-
-			}else if(rovers[i].dist_rover1<=2){
-				local_rover_value.x=(rovers[1].x+current_location.x)/2;
-				local_rover_value.y=(rovers[1].y+current_location.y)/2;
-				local_rover_value.theta=atan2((cos(current_location.theta)+cos(rovers[1].theta))/2,(sin(current_location.theta)+sin(rovers[1].theta))/2);
-			}else if(rovers[i].dist_rover2<=2){
-				local_rover_value.x=(rovers[2].x+current_location.x)/2;
-				local_rover_value.y=(rovers[2].y+current_location.y)/2;
-				local_rover_value.theta=atan2((cos(current_location.theta)+cos(rovers[2].theta))/2,(sin(current_location.theta)+sin(rovers[2].theta))/2);
-			}
-			local_rover_value.name="local";
-			converter2 << local_rover_value.name << " " << local_rover_value.x << " " << local_rover_value.y << " " << local_rover_value.theta;
-			local_average_heading_msg.data = converter2.str();	
-			local_average_headingPublish.publish(local_average_heading_msg);
-			break;
-		case 1:
-			rovers[i].dist_rover1=sqrt((pow((current_location.x-rovers[0].x),2))+(pow((current_location.x-rovers[0].x),2)));
-			rovers[i].dist_rover2=sqrt((pow((current_location.x-rovers[2].x),2))+(pow((current_location.x-rovers[2].x),2)));
-			if((rovers[i].dist_rover1<=2)&&(rovers[i].dist_rover2<=2)){	
-				local_rover_value.x=(rovers[0].x+rovers[2].x+current_location.x)/3;
-				local_rover_value.y=(rovers[0].y+rovers[2].y+current_location.y)/3;
-				local_rover_value.theta=atan2((cos(current_location.theta)+cos(rovers[0].theta)+cos(rovers[2].theta))/3,(sin(current_location.theta)+sin(rovers[0].theta)+sin(rovers[2].theta))/3);
-			}else if(rovers[i].dist_rover1<=2){
-				local_rover_value.x=(rovers[0].x+current_location.x)/2;
-				local_rover_value.y=(rovers[0].y+current_location.y)/2;
-				local_rover_value.theta=atan2((cos(current_location.theta)+cos(rovers[0].theta))/2,(sin(current_location.theta)+sin(rovers[0].theta))/2);
-			}else if(rovers[i].dist_rover2<=2){
-				local_rover_value.x=(rovers[2].x+current_location.x)/2;
-				local_rover_value.y=(rovers[2].y+current_location.y)/2;
-				local_rover_value.theta=atan2((cos(current_location.theta)+cos(rovers[2].theta))/2,(sin(current_location.theta)+sin(rovers[2].theta))/2);
-			}
-			local_rover_value.name="local";
-			converter2 << local_rover_value.name << " " << local_rover_value.x << " " << local_rover_value.y << " " << local_rover_value.theta;
-			local_average_heading_msg.data = converter2.str();	
-			local_average_headingPublish.publish(local_average_heading_msg);
-			break;
-		case 2:
-			rovers[i].dist_rover1=sqrt((pow((current_location.x-rovers[0].x),2))+(pow((current_location.x-rovers[0].x),2)));
-			rovers[i].dist_rover2=sqrt((pow((current_location.x-rovers[1].x),2))+(pow((current_location.x-rovers[1].x),2)));
-			if((rovers[i].dist_rover1<=2)&&(rovers[i].dist_rover2<=2)){	
-				local_rover_value.name="local";
-				local_rover_value.x=(rovers[1].x+rovers[0].x+current_location.x)/3;
-				local_rover_value.y=(rovers[1].y+rovers[0].y+current_location.y)/3;
-				local_rover_value.theta=atan2((cos(current_location.theta)+cos(rovers[1].theta)+cos(rovers[0].theta))/3,(sin(current_location.theta)+sin(rovers[1].theta)+sin(rovers[0].theta))/3);
-			}else if(rovers[i].dist_rover1<=2){
-				local_rover_value.x=(rovers[0].x+current_location.x)/2;
-				local_rover_value.y=(rovers[0].y+current_location.y)/2;
-				local_rover_value.theta=atan2((cos(current_location.theta)+cos(rovers[0].theta))/2,(sin(current_location.theta)+sin(rovers[0].theta))/2);
-			}else if(rovers[i].dist_rover2<=2){
-				local_rover_value.x=(rovers[1].x+current_location.x)/2;
-				local_rover_value.y=(rovers[1].y+current_location.y)/2;
-				local_rover_value.theta=atan2((cos(current_location.theta)+cos(rovers[1].theta))/2,(sin(current_location.theta)+sin(rovers[1].theta))/2);
-			}
-			local_rover_value.name="local";
-			converter2 << local_rover_value.name << " " << local_rover_value.x << " " << local_rover_value.y << " " << local_rover_value.theta;
-			local_average_heading_msg.data = converter2.str();	
-			local_average_headingPublish.publish(local_average_heading_msg);
-			break;
-		default:
-			cout << "no valid case";
-			break;
-	}
-}
-void global_average_headingHandler(const std_msgs::String::ConstPtr& message)
-{
-}
-void local_average_headingHandler(const std_msgs::String::ConstPtr& message)
 {
 }
