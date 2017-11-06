@@ -1,5 +1,6 @@
 #include <ros/ros.h>
-#include <stdlib.h>
+
+#include <stdlib.h> 
 #include <sstream>
 #include <iostream>
 
@@ -12,7 +13,9 @@
 #include <std_msgs/Int16.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/String.h>
-#include <std_msgs/Float32.h>
+
+#include <std_msgs/Float32.h> ##notesdiff
+
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/Range.h>
 #include <geometry_msgs/Pose2D.h>
@@ -29,18 +32,144 @@
 
 #include <signal.h>
 #include <math.h>
-#include <vector>
+
+#include <vector> ##notesdiff
 
 using namespace std;
 
 // Random number generator
 random_numbers::RandomNumberGenerator *rng;
 
-
-
 string rover_name;
 char host[128];
 bool is_published_name = false;
+
+##NewcodeforHW2##
+class Rover
+{
+public:
+    Rover(string roverName, float x, float y, float theta) {
+        // constructor 1
+        name = roverName;
+        X(x);
+        Y(y);
+        Theta(theta);
+    }
+    Rover(string roverName, pose p) {
+        name = roverName;
+        Pose(p);
+    }
+
+    // input functions
+    void X(float x) {location.x = x;}
+    void Y(float y) {location.y = y;}
+    void Theta(float theta) {location.theta = theta;}
+    void Pose(pose p) {X(p.x); Y(p.y); Theta(p.theta);}
+
+    // output functions
+    inline float X(void) {return location.x;}
+    inline float Y(void) {return location.y;}
+    inline float Theta(void) {return location.theta;}
+    inline pose Pose(void) {return location;}
+    inline string Name(void) {return name;}
+
+    bool isRoverClose(Rover otherRover, float distance) {
+        // compute distance between two points
+        // formula is sqrt((x1-x2)^2 + (y1-y2)^2)
+        //
+        // fastest method for computing distance is...
+        // - to avoid local variables (use inline functions)
+        // - to avoid doing a square root (using distance squared)
+        // - to avoid using other libraries (like pow())
+        return (X() - otherRover.X() * X() - otherRover.X()) +
+               (Y() - otherRover.Y() * Y() - otherRover.Y())
+               <= (distance * distance);
+    }
+
+private:
+    string name;
+    pose location;
+};
+
+class Rovers
+{
+public:
+    void addRover(string name, float x, float y, float theta) {
+        // check to make sure it is not already here
+        for (std::vector<Rover>::iterator currentRover = theRovers.begin(); currentRover != theRovers.end(); ++currentRover) {
+            if ((*currentRover).Name() == name) {
+                // found a match!
+
+                // update settings
+                (*currentRover).X(x);
+                (*currentRover).Y(y);
+                (*currentRover).Theta(theta);
+
+                // stop iterating and return
+                return;
+            }
+        }
+
+        // add it
+        Rover newRover(name, x, y, theta);
+        theRovers.push_back(newRover);
+    }
+    inline void addRover(Rover r) { addRover(r.Name(), r.X(), r.Y(), r.Theta()); }
+    inline void updateRover(string name, float x, float y, float theta) { addRover(name, x, y, theta); }
+
+    float calculateAverageBearing() {
+        // NOTE: this function works almost always, except the case where
+        //       all rover thetas cancel each other out.
+        //       We are ignoring this case for simplicity sake and it
+        //       should rarely (if ever) happen.
+        int roverCount = theRovers.size();
+        switch(roverCount) {
+            case 0:
+                return 0.0;
+            case 1:
+                return theRovers.front().Theta();
+            default:
+                float x_part = 0.0;
+                float y_part = 0.0;
+                for (std::vector<Rover>::iterator currentRover = theRovers.begin(); currentRover != theRovers.end(); ++currentRover) {
+                    x_part += cos((*currentRover).Theta());
+                    y_part += sin((*currentRover).Theta());
+                }
+                return atan2(y_part/roverCount, x_part/roverCount);
+        }
+    }
+
+    float calculateAverageNeighborBearing(float x, float y) {
+        // make a fake rover from x and y
+        Rover centerPoint("centerPoint", x, y, 0.0);
+
+        int roverCount = 0;
+        float x_part = 0.0;
+        float y_part = 0.0;
+        for (std::vector<Rover>::iterator currentRover = theRovers.begin(); currentRover != theRovers.end(); ++currentRover) {
+            if (centerPoint.isRoverClose((*currentRover), 2.0)) {
+                x_part += cos((*currentRover).Theta());
+                y_part += sin((*currentRover).Theta());
+                roverCount++;
+            }
+        }
+
+        switch(roverCount) {
+            case 0:
+                return 0.0;
+            case 1:
+                return theRovers.front().Theta();
+            default:
+                return atan2(y_part/roverCount, x_part/roverCount);
+        }
+    }
+
+private:
+    std::vector<Rover> theRovers;
+} all_rovers;
+
+##codeaddedendhere##
+
 
 
 int simulation_mode = 0;
@@ -78,6 +207,11 @@ ros::Subscriber odometrySubscriber;
 ros::Subscriber messageSubscriber;
 ros::Subscriber poseSubscriber;
 
+##addGAVHSub&LAHSub##
+
+ros::Subscriber globalAverageHeadingSubscriber;
+ros::Subscriber localAverageHeadingSubscriber;
+
 //Timers
 ros::Timer stateMachineTimer;
 ros::Timer publish_status_timer;
@@ -101,15 +235,14 @@ void killSwitchTimerEventHandler(const ros::TimerEvent &event);
 void messageHandler(const std_msgs::String::ConstPtr &message);
 void poseHandler(const std_msgs::String::ConstPtr &message);
 
-string get_rover_name_from_message (string msg);
-pose get_pose_from_message (string msg);
-void parse_pose_message(string msg);
-float calculate_global_average_heading();
-float calculate_local_average_heading();
-void calculate_neighbors(string rover_name);
+##addGAHHandler&LAHHandler##
+void globalAverageHeadingHandler(const std_msgs::String::ConstPtr &message);
+void localAverageHeadingHandler(const std_msgs::String::ConstPtr &message);
 
-vector <pose> neighbors(3);
-vector <pose> all_rovers(3);
+
+
+##remove
+
 
 int main(int argc, char **argv)
 {
@@ -140,10 +273,16 @@ int main(int argc, char **argv)
     odometrySubscriber = mNH.subscribe((rover_name + "/odom/ekf"), 10, odometryHandler);
     messageSubscriber = mNH.subscribe(("messages"), 10, messageHandler);
     poseSubscriber = mNH.subscribe(("poses"), 10, poseHandler);
+    ##addGAHSub#LAHSub##
+    globalAverageHeadingSubscriber = mNH.subscribe(("globalAverageHeading"), 10, globalAverageHeadingHandler);
+    localAverageHeadingSubscriber = mNH.subscribe(("localAverageHeading"), 10, localAverageHeadingHandler);
 
     status_publisher = mNH.advertise<std_msgs::String>((rover_name + "/status"), 1, true);
     velocityPublish = mNH.advertise<geometry_msgs::Twist>((rover_name + "/velocity"), 10);
     stateMachinePublish = mNH.advertise<std_msgs::String>((rover_name + "/state_machine"), 1, true);
+    ##addmessageP##
+    messagePublish = mNH.advertise<std_msgs::String>(("messages"), 10, true);
+    
     target_collected_publisher = mNH.advertise<std_msgs::Int16>(("targetsCollected"), 1, true);
     angular_publisher = mNH.advertise<std_msgs::String>((rover_name + "/angular"),1,true);
     publish_status_timer = mNH.createTimer(ros::Duration(status_publish_interval), publishStatusTimerEventHandler);
@@ -152,8 +291,10 @@ int main(int argc, char **argv)
     debug_publisher = mNH.advertise<std_msgs::String>("/debug", 1, true);
     messagePublish = mNH.advertise<std_msgs::String>(("messages"), 10, true);
     posePublisher = mNH.advertise<std_msgs::String>(("poses"), 10, true);
-    globalAverageHeadingPublisher = mNH.advertise<std_msgs::Float32>((rover_name + "/global_average_heading"), 1, true);
-    localAverageHeadingPublisher = mNH.advertise<std_msgs::Float32>((rover_name + "/local_average_heading"), 1, true);
+    #modifiedparts##from1 to 10
+    global_average_heading_publisher = mNH.advertise<std_msgs::String>(("globalAverageHeading"), 10 , true);
+    local_average_heading_publisher = mNH.advertise<std_msgs::String>(("localAverageHeading"), 10 , true);
+
 
     ros::spin();
     return EXIT_SUCCESS;
@@ -178,8 +319,20 @@ void mobilityStateMachine(const ros::TimerEvent &)
                 state_machine_msg.data = "TRANSLATING";//, " + converter.str();
                 float angular_velocity = 0.2;
                 float linear_velocity = 0.1;
+                
+                 ##// compute the adjusted angular velocity we want to use
+                float current_theta = current_location.theta;
+                //float adjust_to_theta = all_rovers.calculateAverageNeighborBearing(current_location.x, current_location.y);
+                float adjust_to_theta = all_rovers.calculateAverageBearing();
+                float tuning_constant = 0.07;
+                float adjusted_angular_velocity = tuning_constant * (adjust_to_theta - current_theta);
+
+                // now use the new angle and turn off forward motion
+                angular_velocity = adjusted_angular_velocity;
+                linear_velocity = 0.0;
                 setVelocity(linear_velocity, angular_velocity);
                 break;
+                
             }
             default:
             {
@@ -197,14 +350,17 @@ void mobilityStateMachine(const ros::TimerEvent &)
         converter <<"CURRENT MODE: " << simulation_mode;
 
         state_machine_msg.data = "WAITING, " + converter.str();
-    }
-    std_msgs::String pose_message;
-    std::stringstream converter;
-    converter << rover_name << ", " << current_location.x << ", " << current_location.y << ", " << current_location.theta;
-    pose_message.data = converter.str();
-    posePublisher.publish(pose_message);
 
+       }
+
+    std::stringstream rover_info;
+    rover_info << rover_name << " - ";
+    rover_info << current_location.x << ", ";
+    rover_info << current_location.y << ", ";
+    rover_info << current_location.theta;
+    pose_msg.data = rover_info.str();
     stateMachinePublish.publish(state_machine_msg);
+    posePublish.publish(pose_msg);
 }
 
 void setVelocity(double linearVel, double angularVel)
@@ -234,30 +390,7 @@ void modeHandler(const std_msgs::UInt8::ConstPtr &message)
     setVelocity(0.0, 0.0);
 }
 
-void poseHandler(const std_msgs::String::ConstPtr& message)
-{
-    std_msgs::String output_message;
-    string msg = message->data;
 
-    parse_pose_message(msg);
-
-    float gah = calculate_global_average_heading();
-
-    calculate_neighbors(rover_name);
-    float lah = calculate_local_average_heading();
-
-    std::stringstream converter;
-    converter << msg << ", " << rover_name << ", " << gah << ", " << lah << ", " << all_rovers[0].theta << ", " << all_rovers[1].theta << ", " << all_rovers[2].theta;
-    output_message.data = converter.str();
-    debug_publisher.publish(output_message);
-
-    std_msgs::Float32 gah_message;
-    std_msgs::Float32 lah_message;
-    gah_message.data = gah;
-    lah_message.data = lah;
-    globalAverageHeadingPublisher.publish(gah_message);
-    localAverageHeadingPublisher.publish(lah_message);
-}
 
 void obstacleHandler(const std_msgs::UInt8::ConstPtr &message)
 {
@@ -334,102 +467,37 @@ void messageHandler(const std_msgs::String::ConstPtr& message)
 {
 
 }
+##modifiedtheRest
+void poseHandler(const std_msgs::String::ConstPtr& message)
+{
+    // parsing strings using c++ std:: sucks, so using a much simpler, but older method...
+    char name[32];
+    float x,y,theta = 0.0;
+    sscanf(message->data.c_str(), "%31s - %f, %f, %f", name, &x, &y, &theta);
+    //ROS_INFO_STREAM( "ERIC: " << name << " " << x << " " << y << " " << theta);
 
-pose get_pose_from_message (string msg) {
-    stringstream ss(msg);
-    string incoming_rover_name;
-    string pose_x;
-    string pose_y;
-    string pose_theta;
-    pose incoming_pose;
+    // update the rover's information
+    all_rovers.updateRover(name, x, y, theta);
 
-    std::getline(ss, incoming_rover_name, ',');
-    std::getline(ss, pose_x, ',');
-    std::getline(ss, pose_y, ',');
-    std::getline(ss, pose_theta, ',');
+    // now publish the global heading
+    std_msgs::String globalAverageHeading_msg;
+    std::stringstream globalInfo;
+    globalInfo << "Global Average Heading:" << all_rovers.calculateAverageBearing();
+    globalAverageHeading_msg.data = globalInfo.str();
+    global_average_heading_publisher.publish(globalAverageHeading_msg);
 
-    istringstream pose_x_iss(pose_x);
-    istringstream pose_y_iss(pose_y);
-    istringstream pose_theta_iss(pose_theta);
-
-    pose_x_iss >> incoming_pose.x;
-    pose_y_iss >> incoming_pose.y;
-    pose_theta_iss >> incoming_pose.theta;
-
-    return incoming_pose;
+    // now publish the local headings
+    std_msgs::String localAverageHeading_msg;
+    std::stringstream localInfo;
+    localInfo << "Local Average Heading (" << name << "): " << all_rovers.calculateAverageNeighborBearing(x, y);
+    localAverageHeading_msg.data = localInfo.str();
+    local_average_heading_publisher.publish(localAverageHeading_msg);
 }
 
-string get_rover_name_from_message (string msg) {
-    stringstream ss(msg);
-    string incoming_rover_name;
-    std::getline(ss, incoming_rover_name, ',');
-    return incoming_rover_name;
+void globalAverageHeadingHandler(const std_msgs::String::ConstPtr& message)
+{
 }
 
-void parse_pose_message(string msg){
-    string incoming_rover_name;
-    pose incoming_pose;
-
-    incoming_rover_name = get_rover_name_from_message (msg);
-    incoming_pose = get_pose_from_message(msg);
-
-    if(incoming_rover_name.compare("ajax") == 0){
-        all_rovers[0] = incoming_pose;
-    } else if (incoming_rover_name.compare("aeneas") == 0){
-        all_rovers[1] = incoming_pose;
-    } else if (incoming_rover_name.compare("achilles") == 0){
-        all_rovers[2] = incoming_pose;
-    } else {
-        cout << "We missed something.";
-    }
-}
-
-float calculate_global_average_heading(){
-    float u_x=0;
-    float u_y=0;
-    float global_average_heading;
-    for (int i = 0; i<3; i++){
-        u_x += cos(all_rovers[i].theta);
-        u_y += sin(all_rovers[i].theta);
-    }
-    global_average_heading = atan2(u_y,u_x);
-    return global_average_heading;
-}
-
-void calculate_neighbors(string rover_name){
-    pose my_pose;
-    int my_index;
-    if(rover_name.compare("ajax") == 0){
-        my_pose = all_rovers[0];
-        my_index = 0;
-    } else if (rover_name.compare("aeneas") == 0){
-        my_pose = all_rovers[1];
-        my_index = 1;
-    } else if (rover_name.compare("achilles") == 0){
-        my_pose = all_rovers[2];
-        my_index = 2;
-    } else {
-        my_pose = all_rovers[0];
-//        cout << "We missed something.";
-    }
-    neighbors.clear();
-    for (int i = 0; i<3; i++){
-        if(i != my_index){
-            if(hypot(my_pose.x-all_rovers[i].x, my_pose.y-all_rovers[i].y)<2){
-                neighbors.push_back(all_rovers[i]);
-            }
-        }
-    }
-}
-
-float calculate_local_average_heading(){
-    float u_x=0;
-    float u_y=0;
-    float local_average_heading;
-    for (int i = 0; i<neighbors.size(); i++){
-        u_x += cos(neighbors[i].theta);
-        u_y += sin(neighbors[i].theta);
-    }
-    local_average_heading = atan2(u_y,u_x);
-    return local_average_heading;
+void localAverageHeadingHandler(const std_msgs::String::ConstPtr& message)
+{
 }
