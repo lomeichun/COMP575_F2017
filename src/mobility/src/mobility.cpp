@@ -32,7 +32,6 @@ using namespace std;
 random_numbers::RandomNumberGenerator *rng;
 
 
-
 string rover_name;
 char host[128];
 bool is_published_name = false;
