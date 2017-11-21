@@ -1,9 +1,5 @@
 #include <ros/ros.h>
 
-#include <stdlib.h> 
-#include <sstream>
-#include <iostream>
-
 // ROS libraries
 #include <angles/angles.h>
 #include <random_numbers/random_numbers.h>
@@ -13,9 +9,6 @@
 #include <std_msgs/Int16.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/String.h>
-
-#include <std_msgs/Float32.h> ##notesdiff
-
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/Range.h>
 #include <geometry_msgs/Pose2D.h>
@@ -33,18 +26,17 @@
 #include <signal.h>
 #include <math.h>
 
-#include <vector> ##notesdiff
-
 using namespace std;
 
 // Random number generator
 random_numbers::RandomNumberGenerator *rng;
 
+
+
 string rover_name;
 char host[128];
 bool is_published_name = false;
 
-##NewcodeforHW2##
 class Rover
 {
 public:
@@ -60,6 +52,14 @@ public:
         Pose(p);
     }
 
+    // operator overloads
+    bool operator==(const Rover& compRover) const {
+        return this->Name() == compRover.Name();
+    }
+    bool operator!=(const Rover& compRover) const {
+        return this->Name() != compRover.Name();
+    }
+
     // input functions
     void X(float x) {location.x = x;}
     void Y(float y) {location.y = y;}
@@ -67,13 +67,13 @@ public:
     void Pose(pose p) {X(p.x); Y(p.y); Theta(p.theta);}
 
     // output functions
-    inline float X(void) {return location.x;}
-    inline float Y(void) {return location.y;}
-    inline float Theta(void) {return location.theta;}
-    inline pose Pose(void) {return location;}
-    inline string Name(void) {return name;}
+    inline float X(void) const {return location.x;}
+    inline float Y(void) const {return location.y;}
+    inline float Theta(void) const {return location.theta;}
+    inline pose Pose(void) const {return location;}
+    inline string Name(void) const {return name;}
 
-    bool isRoverClose(Rover otherRover, float distance) {
+    bool isRoverClose(Rover otherRover, float distance) const {
         // compute distance between two points
         // formula is sqrt((x1-x2)^2 + (y1-y2)^2)
         //
@@ -139,15 +139,12 @@ public:
         }
     }
 
-    float calculateAverageNeighborBearing(float x, float y) {
-        // make a fake rover from x and y
-        Rover centerPoint("centerPoint", x, y, 0.0);
-
+    float calculateAverageNeighborBearing(const Rover& centerPointRover) {
         int roverCount = 0;
         float x_part = 0.0;
         float y_part = 0.0;
         for (std::vector<Rover>::iterator currentRover = theRovers.begin(); currentRover != theRovers.end(); ++currentRover) {
-            if (centerPoint.isRoverClose((*currentRover), 2.0)) {
+            if (centerPointRover.isRoverClose((*currentRover), 2.0)) {
                 x_part += cos((*currentRover).Theta());
                 y_part += sin((*currentRover).Theta());
                 roverCount++;
@@ -158,18 +155,34 @@ public:
             case 0:
                 return 0.0;
             case 1:
-                return theRovers.front().Theta();
+                return centerPointRover.Theta();
             default:
                 return atan2(y_part/roverCount, x_part/roverCount);
         }
     }
 
+    float calculateAverageNeighborBearing2(const Rover& centerPointRover) {
+        int roverCount = 0;
+        float x_part = 0.0;
+        float y_part = 0.0;
+        for (std::vector<Rover>::iterator currentRover = theRovers.begin(); currentRover != theRovers.end(); ++currentRover) {
+            if (centerPointRover != (*currentRover) && centerPointRover.isRoverClose((*currentRover), 2.0)) {
+                x_part += (*currentRover).X() - centerPointRover.X();
+                y_part += (*currentRover).Y() - centerPointRover.Y();
+                roverCount++;
+            }
+        }
+
+        if (roverCount < 1) {
+            return centerPointRover.Theta();
+        }
+
+        return atan2((y_part/roverCount) + centerPointRover.Y(), (x_part/roverCount) + centerPointRover.X());
+    }
+
 private:
     std::vector<Rover> theRovers;
 } all_rovers;
-
-##codeaddedendhere##
-
 
 
 int simulation_mode = 0;
@@ -193,10 +206,10 @@ ros::Publisher status_publisher;
 ros::Publisher target_collected_publisher;
 ros::Publisher angular_publisher;
 ros::Publisher messagePublish;
+ros::Publisher posePublish;
 ros::Publisher debug_publisher;
-ros::Publisher posePublisher;
-ros::Publisher globalAverageHeadingPublisher;
-ros::Publisher localAverageHeadingPublisher;
+ros::Publisher global_average_heading_publisher;
+ros::Publisher local_average_heading_publisher;
 
 //Subscribers
 ros::Subscriber joySubscriber;
@@ -204,11 +217,9 @@ ros::Subscriber modeSubscriber;
 ros::Subscriber targetSubscriber;
 ros::Subscriber obstacleSubscriber;
 ros::Subscriber odometrySubscriber;
+
 ros::Subscriber messageSubscriber;
 ros::Subscriber poseSubscriber;
-
-##addGAVHSub&LAHSub##
-
 ros::Subscriber globalAverageHeadingSubscriber;
 ros::Subscriber localAverageHeadingSubscriber;
 
@@ -227,22 +238,15 @@ void sigintEventHandler(int signal);
 void joyCmdHandler(const geometry_msgs::Twist::ConstPtr &message);
 void modeHandler(const std_msgs::UInt8::ConstPtr &message);
 void targetHandler(const shared_messages::TagsImage::ConstPtr &tagInfo);
-void obstacleHandler(const std_msgs::UInt8::ConstPtr &message); //
+void obstacleHandler(const std_msgs::UInt8::ConstPtr &message); // 
 void odometryHandler(const nav_msgs::Odometry::ConstPtr &message);
 void mobilityStateMachine(const ros::TimerEvent &);
 void publishStatusTimerEventHandler(const ros::TimerEvent &event);
 void killSwitchTimerEventHandler(const ros::TimerEvent &event);
 void messageHandler(const std_msgs::String::ConstPtr &message);
 void poseHandler(const std_msgs::String::ConstPtr &message);
-
-##addGAHHandler&LAHHandler##
 void globalAverageHeadingHandler(const std_msgs::String::ConstPtr &message);
 void localAverageHeadingHandler(const std_msgs::String::ConstPtr &message);
-
-
-
-##remove
-
 
 int main(int argc, char **argv)
 {
@@ -273,28 +277,23 @@ int main(int argc, char **argv)
     odometrySubscriber = mNH.subscribe((rover_name + "/odom/ekf"), 10, odometryHandler);
     messageSubscriber = mNH.subscribe(("messages"), 10, messageHandler);
     poseSubscriber = mNH.subscribe(("poses"), 10, poseHandler);
-    ##addGAHSub#LAHSub##
     globalAverageHeadingSubscriber = mNH.subscribe(("globalAverageHeading"), 10, globalAverageHeadingHandler);
     localAverageHeadingSubscriber = mNH.subscribe(("localAverageHeading"), 10, localAverageHeadingHandler);
 
     status_publisher = mNH.advertise<std_msgs::String>((rover_name + "/status"), 1, true);
     velocityPublish = mNH.advertise<geometry_msgs::Twist>((rover_name + "/velocity"), 10);
     stateMachinePublish = mNH.advertise<std_msgs::String>((rover_name + "/state_machine"), 1, true);
-    ##addmessageP##
     messagePublish = mNH.advertise<std_msgs::String>(("messages"), 10, true);
-    
     target_collected_publisher = mNH.advertise<std_msgs::Int16>(("targetsCollected"), 1, true);
     angular_publisher = mNH.advertise<std_msgs::String>((rover_name + "/angular"),1,true);
     publish_status_timer = mNH.createTimer(ros::Duration(status_publish_interval), publishStatusTimerEventHandler);
     killSwitchTimer = mNH.createTimer(ros::Duration(kill_switch_timeout), killSwitchTimerEventHandler);
     stateMachineTimer = mNH.createTimer(ros::Duration(mobility_loop_time_step), mobilityStateMachine);
     debug_publisher = mNH.advertise<std_msgs::String>("/debug", 1, true);
-    messagePublish = mNH.advertise<std_msgs::String>(("messages"), 10, true);
-    posePublisher = mNH.advertise<std_msgs::String>(("poses"), 10, true);
-    #modifiedparts##from1 to 10
+    messagePublish = mNH.advertise<std_msgs::String>(("messages"), 10 , true);
+    posePublish = mNH.advertise<std_msgs::String>(("poses"), 10 , true);
     global_average_heading_publisher = mNH.advertise<std_msgs::String>(("globalAverageHeading"), 10 , true);
     local_average_heading_publisher = mNH.advertise<std_msgs::String>(("localAverageHeading"), 10 , true);
-
 
     ros::spin();
     return EXIT_SUCCESS;
@@ -303,6 +302,7 @@ int main(int argc, char **argv)
 void mobilityStateMachine(const ros::TimerEvent &)
 {
     std_msgs::String state_machine_msg;
+    std_msgs::String pose_msg;
 
     if ((simulation_mode == 2 || simulation_mode == 3)) // Robot is in automode
     {
@@ -314,44 +314,43 @@ void mobilityStateMachine(const ros::TimerEvent &)
         }
         switch (state_machine_state)
         {
-            case STATE_MACHINE_TRANSLATE:
-            {
-                state_machine_msg.data = "TRANSLATING";//, " + converter.str();
-                float angular_velocity = 0.2;
-                float linear_velocity = 0.1;
-                
-                 ##// compute the adjusted angular velocity we want to use
-                float current_theta = current_location.theta;
-                //float adjust_to_theta = all_rovers.calculateAverageNeighborBearing(current_location.x, current_location.y);
-                float adjust_to_theta = all_rovers.calculateAverageBearing();
-                float tuning_constant = 0.07;
-                float adjusted_angular_velocity = tuning_constant * (adjust_to_theta - current_theta);
+        case STATE_MACHINE_TRANSLATE:
+        {
+            state_machine_msg.data = "TRANSLATING";//, " + converter.str();
+            float angular_velocity = 0.2;
+            float linear_velocity = 0.1;
 
-                // now use the new angle and turn off forward motion
-                angular_velocity = adjusted_angular_velocity;
-                linear_velocity = 0.0;
-                setVelocity(linear_velocity, angular_velocity);
-                break;
-                
-            }
-            default:
-            {
-                state_machine_msg.data = "DEFAULT CASE: SOMETHING WRONG!!!!";
-                break;
-            }
+            // calculate the adjusted angular velocity we want to use
+            float current_theta = current_location.theta;
+            //float tuning_constant = 0.07;
+            //float adjust_to_theta = all_rovers.calculateAverageNeighborBearing(Rover(rover_name, current_location));
+            //float adjust_to_theta = all_rovers.calculateAverageBearing();
+            float adjust_to_theta = all_rovers.calculateAverageNeighborBearing2(Rover(rover_name, current_location));
+            float tuning_constant = 0.5;
+            float adjusted_angular_velocity = tuning_constant * (adjust_to_theta - current_theta);
+
+            // now use the new angle and turn off forward motion
+            angular_velocity = adjusted_angular_velocity;
+            linear_velocity = 0.05;
+            setVelocity(linear_velocity, angular_velocity);
+            break;
         }
-
+        default:
+        {
+            state_machine_msg.data = "DEFAULT CASE: SOMETHING WRONG!!!!";
+            break;
+        }
+        }
     }
     else
     { // mode is NOT auto
 
-        // publish current state for the operator to seerotational_controller
+        // publish current state for the operator to see rotational_controller
         std::stringstream converter;
         converter <<"CURRENT MODE: " << simulation_mode;
 
         state_machine_msg.data = "WAITING, " + converter.str();
-
-       }
+    }
 
     std::stringstream rover_info;
     rover_info << rover_name << " - ";
@@ -389,8 +388,6 @@ void modeHandler(const std_msgs::UInt8::ConstPtr &message)
     simulation_mode = message->data;
     setVelocity(0.0, 0.0);
 }
-
-
 
 void obstacleHandler(const std_msgs::UInt8::ConstPtr &message)
 {
@@ -452,6 +449,7 @@ void killSwitchTimerEventHandler(const ros::TimerEvent &t)
 {
     // No movement commands for killSwitchTime seconds so stop the rover
     setVelocity(0.0, 0.0);
+
     double current_time = ros::Time::now().toSec();
     ROS_INFO("In mobility.cpp:: killSwitchTimerEventHander(): Movement input timeout. Stopping the rover at %6.4f.",
              current_time);
@@ -465,9 +463,8 @@ void sigintEventHandler(int sig)
 
 void messageHandler(const std_msgs::String::ConstPtr& message)
 {
-
 }
-##modifiedtheRest
+
 void poseHandler(const std_msgs::String::ConstPtr& message)
 {
     // parsing strings using c++ std:: sucks, so using a much simpler, but older method...
@@ -489,7 +486,7 @@ void poseHandler(const std_msgs::String::ConstPtr& message)
     // now publish the local headings
     std_msgs::String localAverageHeading_msg;
     std::stringstream localInfo;
-    localInfo << "Local Average Heading (" << name << "): " << all_rovers.calculateAverageNeighborBearing(x, y);
+    localInfo << "Local Average Heading (" << name << "): " << all_rovers.calculateAverageNeighborBearing(Rover(name, x, y, theta));
     localAverageHeading_msg.data = localInfo.str();
     local_average_heading_publisher.publish(localAverageHeading_msg);
 }
