@@ -294,6 +294,7 @@ int main(int argc, char **argv)
     global_average_heading_publisher = mNH.advertise<std_msgs::String>(("globalAverageHeading"), 10 , true);
     local_average_heading_publisher = mNH.advertise<std_msgs::String>(("localAverageHeading"), 10 , true);
 
+
     ros::spin();
     return EXIT_SUCCESS;
 }
