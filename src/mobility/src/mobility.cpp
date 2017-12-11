@@ -502,30 +502,350 @@ void messageHandler(const std_msgs::String::ConstPtr& message)
 
 void poseHandler(const std_msgs::String::ConstPtr& message)
 {
-    // parsing strings using c++ std:: sucks, so using a much simpler, but older method...
-    char name[32];
-    float x,y,theta = 0.0;
-    sscanf(message->data.c_str(), "%31s - %f, %f, %f", name, &x, &y, &theta);
-    //ROS_INFO_STREAM( "ERIC: " << name << " " << x << " " << y << " " << theta);
+    std::string msg;
+    msg = message->data.c_str();
 
-    // update the rover's information
-    all_rovers.updateRover(name, x, y, theta);
 
-    // now publish the global heading
-    std_msgs::String globalAverageHeading_msg;
-    std::stringstream globalInfo;
-    globalInfo << "Global Average Heading:" << all_rovers.calculateAverageBearing();
-    globalAverageHeading_msg.data = globalInfo.str();
-    global_average_heading_publisher.publish(globalAverageHeading_msg);
+    std_msgs::String pose_msg;
 
-    // now publish the local headings
-    std_msgs::String localAverageHeading_msg;
-    std::stringstream localInfo;
-    localInfo << "Local Average Heading (" << name << "): " << all_rovers.calculateAverageNeighborBearing(Rover(name, x, y, theta));
-    localAverageHeading_msg.data = localInfo.str();
-    local_average_heading_publisher.publish(localAverageHeading_msg);
-}
 
+    std::string delimiter = ",";
+    
+    int index = 0;
+    char remove_char[]  = "()abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+
+    std::string name = msg.substr(0, msg.find(" "));
+
+
+    for (int i = 0; i < num_o_r; i++)
+    {
+        if(rovers_data[i][0] == "")
+        {
+            rovers_data[i][0] = name;
+            index = i;
+            break;
+        }
+        else if (rovers_data[i][0] == name)
+        {
+            index = i;
+            break;
+        }
+    }
+
+
+    for (unsigned int i = 0; i < strlen(remove_char); i++)
+    {
+       msg.erase (std::remove(msg.begin(), msg.end(), remove_char[i]), msg.end());
+    }
+
+
+    int pos = 0; // it may need to use “size_t”
+    std::string num;
+
+
+    // x values
+    pos = msg.find(delimiter);
+
+
+    num = msg.substr(0, pos);
+    rovers_data[index][1] = num;
+    msg.erase(0, pos + delimiter.length());
+
+
+    // y
+    pos = msg.find(delimiter);
+
+
+    num = msg.substr(0, pos);
+    rovers_data[index][2] = num;
+    msg.erase(0, pos + delimiter.length());
+
+
+    // theta values
+    rovers_data[index][3] = msg;
+
+
+    // calculate global average heading
+    float ro1[2], ro2[2], ro3[2], ro4[2], ro5[2], ro6[2];
+    float g_avg[2];
+
+
+    float seperation[2];
+    float sep_distance = 1.0;
+    float sep_weight = 0.5;
+    float coh_weight = 0.0;
+    float align_weight = 0.0;
+
+
+    if (num_o_r == 3)
+    {
+
+
+        ro1[0] = cos (strtof((rovers_data[0][3]).c_str(),0));
+        ro1[1] = sin (strtof((rovers_data[0][3]).c_str(),0));
+
+        ro2[0] = cos (strtof((rovers_data[1][3]).c_str(),0));
+        ro2[1] = sin (strtof((rovers_data[1][3]).c_str(),0));
+
+        ro3[0] = cos (strtof((rovers_data[2][3]).c_str(),0));
+        ro3[1] = sin (strtof((rovers_data[2][3]).c_str(),0));
+
+
+        float g_avg[2];
+        g_avg[0] = (ro1[1] + ro2[1] + ro3[1]) / 3;
+        g_avg[1] = (u1[0] + ro2[0] + ro3[0]) / 3;
+
+
+        glob_average = atan2(g_avg[1], g_avg[0]);
+
+
+        std::stringstream converter;
+        converter << "Global Average Theta = " << glob_average;
+        pose_msg.data = converter.str();
+        global_average_heading.publish(pose_msg);
+    } else if (num_o_r == 6)
+    {
+
+
+        ro1[0] = cos (strtof((rovers_data[0][3]).c_str(),0));
+        ro1[1] = sin (strtof((rovers_data[0][3]).c_str(),0));
+
+        ro2[0] = cos (strtof((rovers_data[1][3]).c_str(),0));
+        ro2[1] = sin (strtof((rovers_data[1][3]).c_str(),0));
+
+        ro3[0] = cos (strtof((rovers_data[2][3]).c_str(),0));
+        ro3[1] = sin (strtof((rovers_data[2][3]).c_str(),0));
+
+        ro4[0] = cos (strtof((rovers_data[3][3]).c_str(),0));
+        ro4[1] = sin (strtof((rovers_data[3][3]).c_str(),0));
+
+        ro5[0] = cos (strtof((rovers_data[4][3]).c_str(),0));
+        u5[1] = sin (strtof((rovers_data[4][3]).c_str(),0));
+
+        ro6[0] = cos (strtof((rovers_data[5][3]).c_str(),0));
+        ro6[1] = sin (strtof((rovers_data[5][3]).c_str(),0));
+
+        g_avg[0] = (ro1[1] + ro2[1] + ro3[1] + ro4[1] + ro5[1] + ro6[1]) / 6;
+        g_avg[1] = (ro1[0] + ro2[0] + ro3[0] + ro4[0] + ro5[0] + ro6[0]) / 6;
+
+
+        glob_average = atan2(g_avg[1], g_avg[0]);
+
+
+        std::stringstream converter;
+        converter << "Global Average Theta = " << glob_average;
+        pose_msg.data = converter.str();
+        global_average_heading.publish(pose_msg);
+    }
+
+//compute local_average_heading
+        float di1_2, di1_3, di1_4, di1_5, di1_6, xdif, ydif;
+    int num_neighbors = 0;
+    bool contained_di1_2 = false;
+    bool contained_di1_3 = false;
+    bool contained_di1_4 = false;
+    bool contained_di1_5 = false;
+    bool contained_di1_6 = false;
+    std::stringstream gat;
+
+
+    // there are 3 or 6 rovers
+    if (num_o_r == 3)
+    {
+        // find distances between other rovers
+        if (index == 0)
+        {
+            xdif = strtof((rovers_data[0][1]).c_str(),0) - strtof((rovers_data[1][1]).c_str(),0);
+            ydif = strtof((rovers_data[0][2]).c_str(),0) - strtof((rovers_data[1][2]).c_str(),0);
+            di1_2 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_2 <= 2)
+            {
+                contained_di1_2 = true;
+                num_neighbors++;
+            }
+
+
+            xdif = strtof((rovers_data[0][1]).c_str(),0) - strtof((rovers_data[2][1]).c_str(),0);
+            ydif = strtof((rovers_data[0][2]).c_str(),0) - strtof((rovers_data[2][2]).c_str(),0);
+            di1_3 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_3 <= 2)
+            {
+                contained_di1_3 = true;
+                num_neighbors++;
+            }
+
+
+            if (contained_di1_2 == true && contained_di1_3 == true)
+            {
+                g_avg[0] = (ro1[1] + ro2[1] + ro3[1]) / 3;
+                g_avg[1] = (ro1[0] + ro2[0] + ro3[0]) / 3;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            } else if (contained_di1_2 == true)
+            {
+                g_avg[0] = (ro1[1] + ro2[1]) / 2;
+                g_avg[1] = (ro1[0] + ro2[0]) / 2;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            } else if (contained_di1_3 == true)
+            {
+                g_avg[0] = (ro1[1] + ro3[1]) / 2;
+                g_avg[1] = (ro1[0] + ro3[0]) / 2;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            } else
+            {
+                local_average = 0.0;
+            }
+
+
+
+
+            gat << rovers_name << " with " << num_neighbors << " neighbors with Local Average Theta = " << local_average;
+            pose_msg.data = gat.str();
+            local_average_heading.publish(pose_msg);
+
+
+        } else if(index == 1)
+        {
+            xdif = strtof((rovers_data[1][1]).c_str(),0) - strtof((rover_data[0][1]).c_str(),0);
+            ydif = strtof((rovers_data[1][2]).c_str(),0) - strtof((rover_data[0][2]).c_str(),0);
+            di1_2 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_2 <= 2)
+            {
+                contained_di1_2 = true;
+                num_neighbors++;
+            }
+
+
+            xdif = strtof((rovers_data[1][1]).c_str(),0) - strtof((rovers_data[2][1]).c_str(),0);
+            ydif = strtof((rovers_data[1][2]).c_str(),0) - strtof((rovers_data[2][2]).c_str(),0);
+            di1_3 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_3 <= 2)
+            {
+                contained_di1_3 = true;
+                num_neighbors++;
+            }
+
+
+            float local_average;
+            if (contained_di1_2 == true && contained_d13 == true)
+            {
+                g_avg[0] = (ro1[1] + ro2[1] + ro3[1]) / 3;
+                g_avg[1] = (ro1[0] + ro2[0] + ro3[0]) / 3;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            } else if (contained_di1_2 == true)
+            {
+                g_avg[0] = (u1[1] + u2[1]) / 2;
+                g_avg[1] = (u1[0] + u2[0]) / 2;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            } else if (contained_d13 == true)
+            {
+                g_avg[0] = (ro1[1] + ro3[1]) / 2;
+                g_avg[1] = (ro1[0] + ro3[0]) / 2;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            } else
+            {
+                local_average = 0.0;
+            }
+
+
+
+
+            gat << rover_name << " with " << num_neighbors << " neighbors with Local Average Theta = " << local_average;
+            pose_msg.data = gat.str();
+            local_average_heading.publish(pose_msg);
+
+
+        } else
+        {
+            xdif = strtof((rovers_data[2][1]).c_str(),0) - strtof((rovers_data[0][1]).c_str(),0);
+            ydif = strtof((rovers_data[2][2]).c_str(),0) - strtof((rovers_data[0][2]).c_str(),0);
+            di1_2 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_2 <= 2)
+            {
+                contained_di1_2 = true;
+                num_neighbors++;
+            }
+
+
+            xdif = strtof((rovers_data[2][1]).c_str(),0) - strtof((rovers_data[1][1]).c_str(),0);
+            ydif = strtof((rovers_data[2][2]).c_str(),0) - strtof((rovers_data[1][2]).c_str(),0);
+            di1_3 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_3 <= 2)
+            {
+                contained_d13 = true;
+                num_neighbors++;
+            }
+
+
+            float local_average;
+            if (contained_di1_2 == true && contained_di1_3 == true)
+            {
+                g_avg[0] = (ro1[1] + ro2[1] + ro3[1]) / 3;
+                g_avg[1] = (ro1[0] + ro2[0] + ro3[0]) / 3;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            } else if (contained_di1_2 == true)
+            {
+                g_avg[0] = (ro1[1] + ro3[1]) / 2;
+                g_avg[1] = (ro1[0] + ro3[0]) / 2;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            } else if (contained_di1_3 == true)
+            {
+                g_avg[0] = (ro2[1] + ro3[1]) / 2;
+                g_avg[1] = (ro2[0] + ro3[0]) / 2;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            } else
+            {
+                local_average = 0.0;
+            }
+
+
+
+
+            gat << rover_name << " with " << num_neighbors << " neighbors with Local Average Theta = " << local_average;
+            pose_msg.data = gat.str();
+            local_average_heading.publish(pose_msg);
+        }
+
+
+
+
+    } else if (num,_o_r == 6) {
+
+        //compute distance b/w rovers 
+        num_neighbors =1; 
+        
+        //build array for summing up of local position
+        
+        
 void globalAverageHeadingHandler(const std_msgs::String::ConstPtr& message)
 {
 }
