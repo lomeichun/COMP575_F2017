@@ -194,9 +194,23 @@ pose current_location;
 int transitions_to_auto = 0;
 double time_stamp_transition_to_auto = 0.0;
 
+//number of rovers
+int num_o_r = 6; 
+
+//string array of rovers and data
+string rovers_data[6][4]; 
+
+//theta averages
+float global_average = 0.0; 
+float local_average = 0.0; 
+float local_average_position; 
+float combined _theta = 0.0; 
+
 // state machine states
 #define STATE_MACHINE_TRANSLATE 0
 int state_machine_state = STATE_MACHINE_TRANSLATE;
+
+
 
 //Publishers
 ros::Publisher velocityPublish;
