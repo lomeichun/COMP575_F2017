@@ -308,7 +308,23 @@ int main(int argc, char **argv)
     global_average_heading_publisher = mNH.advertise<std_msgs::String>(("globalAverageHeading"), 10 , true);
     local_average_heading_publisher = mNH.advertise<std_msgs::String>(("localAverageHeading"), 10 , true);
 
-
+    if (num_o_r = 3)
+    {
+        rovers_data[0][0] = "";
+        rovers_data[1][0] = "";
+        rovers_data[2][0] = "";
+    } else if(num_o_r = 6)
+    {
+        rovers_data[0][0] = "";
+        rovers_data[1][0] = "";
+        rovers_data[2][0] = "";
+        rovers_data[3][0] = "";
+        rovers_data[4][0] = "";
+        rovers_data[5][0] = "";
+    }
+    
+    local_average_position = 0.0; 
+    
     ros::spin();
     return EXIT_SUCCESS;
 }
@@ -318,7 +334,7 @@ void mobilityStateMachine(const ros::TimerEvent &)
     std_msgs::String state_machine_msg;
     std_msgs::String pose_msg;
 
-    if ((simulation_mode == 2 || simulation_mode == 3)) // Robot is in automode
+    if ((simulation_mode == 2 || simulation_mode == 3)) // Rovers is in automode
     {
         if (transitions_to_auto == 0)
         {
@@ -331,21 +347,23 @@ void mobilityStateMachine(const ros::TimerEvent &)
         case STATE_MACHINE_TRANSLATE:
         {
             state_machine_msg.data = "TRANSLATING";//, " + converter.str();
-            float angular_velocity = 0.2;
-            float linear_velocity = 0.1;
+            
+            float c = 0.1; 
+            float angular_velocity = (local_average - current_location.theta)*c ;
+            float linear_velocity = 0.5;
 
             // calculate the adjusted angular velocity we want to use
             float current_theta = current_location.theta;
             //float tuning_constant = 0.07;
             //float adjust_to_theta = all_rovers.calculateAverageNeighborBearing(Rover(rover_name, current_location));
             //float adjust_to_theta = all_rovers.calculateAverageBearing();
-            float adjust_to_theta = all_rovers.calculateAverageNeighborBearing2(Rover(rover_name, current_location));
+            //float adjust_to_theta = all_rovers.calculateAverageNeighborBearing2(Rover(rover_name, current_location));
             float tuning_constant = 0.5;
             float adjusted_angular_velocity = tuning_constant * (adjust_to_theta - current_theta);
 
             // now use the new angle and turn off forward motion
-            angular_velocity = adjusted_angular_velocity;
-            linear_velocity = 0.05;
+            //angular_velocity = adjusted_angular_velocity;
+            //linear_velocity = 0.05;
             setVelocity(linear_velocity, angular_velocity);
             break;
         }
@@ -361,13 +379,16 @@ void mobilityStateMachine(const ros::TimerEvent &)
 
         // publish current state for the operator to see rotational_controller
         std::stringstream converter;
-        converter <<"CURRENT MODE: " << simulation_mode;
+        converter << rover_name << " (" <<"current_location.x << ", " << current_location.v << ", " << current_location.theta <<")"; 
+        post_msg.data = coverter.str();
+        posePublish.publish(pose_msg);
 
         state_machine_msg.data = "WAITING, " + converter.str();
+        
     }
 
     std::stringstream rover_info;
-    rover_info << rover_name << " - ";
+    rover_info << rover_name << " , ";
     rover_info << current_location.x << ", ";
     rover_info << current_location.y << ", ";
     rover_info << current_location.theta;
