@@ -749,8 +749,8 @@ void poseHandler(const std_msgs::String::ConstPtr& message)
                 local_average = atan2(g_avg[1], g_avg[0]);
             } else if (contained_di1_2 == true)
             {
-                g_avg[0] = (u1[1] + u2[1]) / 2;
-                g_avg[1] = (u1[0] + u2[0]) / 2;
+                g_avg[0] = (ro1[1] + ro2[1]) / 2;
+                g_avg[1] = (ro1[0] + ro2[0]) / 2;
 
 
                 local_average = atan2(g_avg[1], g_avg[0]);
@@ -795,7 +795,7 @@ void poseHandler(const std_msgs::String::ConstPtr& message)
 
             if (di1_3 <= 2)
             {
-                contained_d13 = true;
+                contained_di1_3 = true;
                 num_neighbors++;
             }
 
@@ -844,7 +844,326 @@ void poseHandler(const std_msgs::String::ConstPtr& message)
         num_neighbors =1; 
         
         //build array for summing up of local position
-        
+                float lo_positions[2];
+        lo_positions[0] = 0.0;
+        lo_positions[1] = 0.0;
+
+
+        seperation[0] = 0.0;
+        seperation[1] = 0.0;
+
+
+        if (index == 0)
+        {
+            g_avg[0] = u1[1];
+            g_avg[1] = u1[0];
+
+
+            xdif = strtof((rovers_data[0][1]).c_str(),0) - strtof((rovers_data[1][1]).c_str(),0);
+            ydif = strtof((rovers_data[0][2]).c_str(),0) - strtof((rovers_data[1][2]).c_str(),0);
+            di1_2 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_2 <= 2)
+            {
+                contained_di1_2 = true;
+                g_avg[0] = g_avg[0] + ro2[1];
+                g_avg[1] = g_avg[1] + ro2[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_2 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[0][1]).c_str(),0) - strtof((rovers_data[2][1]).c_str(),0);
+            ydif = strtof((rovers_data[0][2]).c_str(),0) - strtof((rovers_data[2][2]).c_str(),0);
+            di1_3 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_3 <= 2)
+            {
+                contained_di1_3 = true;
+                g_avg[0] = g_avg[0] + ro3[1];
+                g_avg[1] = g_avg[1] + ro3[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_3 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[0][1]).c_str(),0) - strtof((rovers_data[3][1]).c_str(),0);
+            ydif = strtof((rovers_data[0][2]).c_str(),0) - strtof((rovers_data[3][2]).c_str(),0);
+            di1_4 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_4 <= 2)
+            {
+                contained_di1_4 = true;
+                g_avg[0] = g_avg[0] + ro4[1];
+                g_avg[1] = g_avg[1] + ro4[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_4 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[0][1]).c_str(),0) - strtof((rovers_data[4][1]).c_str(),0);
+            ydif = strtof((rovers_data[0][2]).c_str(),0) - strtof((rovers_data[4][2]).c_str(),0);
+            di1_5 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_5 <= 2)
+            {
+                contained_di1_5 = true;
+                g_avg[0] = g_avg[0] + ro5[1];
+                g_avg[1] = g_avg[1] + ro5[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_5 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[0][1]).c_str(),0) - strtof((rovers_data[5][1]).c_str(),0);
+            ydif = strtof((rovers_data[0][2]).c_str(),0) - strtof((rovers_data[5][2]).c_str(),0);
+            di1_6 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_6 <= 2)
+            {
+                contained_di1_6 = true;
+                g_avg[0] = g_avg[0] + ro6[1];
+                g_avg[1] = g_avg[1] + ro6[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_6 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            if (num_neighbors == 1)
+            {
+                local_average = 0.0;
+            } else
+            {
+                g_avg[0] = g_avg[0] / num_neighbors;
+                g_avg[1] = g_avg[1] / num_neighbors;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            }
+         // phase 1 (index1) 1st normalize, 2nd multiply by weights, 3rd alignment
+
+            float norm = sqrt(g_avg[0]*g_avg[0] + g_avg[1]*g_avg[1]);
+            g_avg[0] = g_avg[0]/norm * align_weight;
+            g_avg[1] = g_avg[1]/norm * align_weight;
+            // 4th cohesion
+            norm = sqrt(lo_positions[0]*loc_positions[0] + lo_positions[1]*lo_positions[1]);
+            lo_positions[0] = -lo_positions[0]/norm * coh_weight;
+            lo_positions[1] = -lo_positions[1]/norm * coh_weight;
+            // separation
+            norm = sqrt(seperation[0]*seperation[0] + seperation[1]*seperation[1]);
+            seperation[0] = -seperation[0]/norm * sep_weight;
+            seperation[1] = -seperation[1]/norm * sep_weight;
+
+
+            combined_theta = atan2(g_avg[1]+lo_positions[1]+seperation[1], g_avg[0]+lo_positions[0]+seperation[0]);
+
+
+            local_average_position = atan2(lo_positions[1], lo_positions[0]);
+
+
+            gat << rovers_name << " with " << num_neighbors << " neighbors with Combine Theta = " << combined_theta;
+            pose_msg.data = gat.str();
+            local_average_heading.publish(pose_msg);
+
+
+        } else if(index == 1)
+        {
+            g_avg[0] = ro2[1];
+            g_avg[1] = ro2[0];
+
+
+            xdif = strtof((rovers_data[1][1]).c_str(),0) - strtof((rovers_data[0][1]).c_str(),0);
+            ydif = strtof((rovers_data[1][2]).c_str(),0) - strtof((rovers_data[0][2]).c_str(),0);
+            di1_2 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_2 <= 2)
+            {
+                contained_di1_2 = true;
+                g_avg[0] = g_avg[0] + ro1[1];
+                g_avg[1] = g_avg[1] + ro1[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_2 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[1][1]).c_str(),0) - strtof((rovers_data[2][1]).c_str(),0);
+            ydif = strtof((rovers_data[1][2]).c_str(),0) - strtof((rovers_data[2][2]).c_str(),0);
+            di1_3 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_3 <= 2)
+            {
+                contained_di1_3 = true;
+                g_avg[0] = g_avg[0] + ro3[1];
+                g_avg[1] = g_avg[1] + ro3[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_3 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[1][1]).c_str(),0) - strtof((rovers_data[3][1]).c_str(),0);
+            ydif = strtof((rovers_data[1][2]).c_str(),0) - strtof((rovers_data[3][2]).c_str(),0);
+            di1_4 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_4 <= 2)
+            {
+                contained_di1_4 = true;
+                g_avg[0] = g_avg[0] + ro4[1];
+                g_avg[1] = g_avg[1] + ro4[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_4 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[1][1]).c_str(),0) - strtof((rovers_data[4][1]).c_str(),0);
+            ydif = strtof((rovers_data[1][2]).c_str(),0) - strtof((rovers_data[4][2]).c_str(),0);
+            di1_5 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_5 <= 2)
+            {
+                contained_di1_5 = true;
+                g_avg[0] = g_avg[0] + ro5[1];
+                g_avg[1] = g_avg[1] + ro5[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_5 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[1][1]).c_str(),0) - strtof((rovers_data[5][1]).c_str(),0);
+            ydif = strtof((rovers_data[1][2]).c_str(),0) - strtof((rovers_data[5][2]).c_str(),0);
+            di1_6 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_6 <= 2)
+            {
+                contained_di1_6 = true;
+                g_avg[0] = g_avg[0] + ro6[1];
+                g_avg[1] = g_avg[1] + ro6[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_6 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            if (num_neighbors == 1)
+            {
+                local_average = 0.0;
+            } else
+            {
+                g_avg[0] = g_avg[0] / num_neighbors;
+                g_avg[1] = g_avg[1] / num_neighbors;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            }
+
         
 void globalAverageHeadingHandler(const std_msgs::String::ConstPtr& message)
 {
