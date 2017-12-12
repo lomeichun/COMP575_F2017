@@ -1592,6 +1592,149 @@ void poseHandler(const std_msgs::String::ConstPtr& message)
 
                 local_average = atan2(g_avg[1], g_avg[0]);
             }
+//phase 5 (index5): 1st normalize, 2nd multiply by weights, 3rd alignment, 4th cohesion, 5th separation (last)
+                    } else if(index == 5)
+        {
+            g_avg[0] = ro6[1];
+            g_avg[1] = ro6[0];
+
+
+            xdif = strtof((rovers_data[5][1]).c_str(),0) - strtof((rovers_data[0][1]).c_str(),0);
+            ydif = strtof((rovers_data[5][2]).c_str(),0) - strtof((rovers_data[0][2]).c_str(),0);
+            di1_2 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_2 <= 2)
+            {
+                contained_di1_2 = true;
+                g_avg[0] = g_avg[0] + ro1[1];
+                g_avg[1] = g_avg[1] + ro1[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_2 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[5][1]).c_str(),0) - strtof((rovers_data[1][1]).c_str(),0);
+            ydif = strtof((rovers_data[5][2]).c_str(),0) - strtof((rovers_data[1][2]).c_str(),0);
+            di1_3 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_3 <= 2)
+            {
+                contained_di1_3 = true;
+                g_avg[0] = g_avg[0] + ro2[1];
+                g_avg[1] = g_avg[1] + ro2[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                Lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_3 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[5][1]).c_str(),0) - strtof((rovers_data[2][1]).c_str(),0);
+            ydif = strtof((rovers_data[5][2]).c_str(),0) - strtof((rovers_data[2][2]).c_str(),0);
+            di1_4 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_4 <= 2)
+            {
+                contained_di1_4 = true;
+                g_avg[0] = g_avg[0] + ro3[1];
+                g_avg[1] = g_avg[1] + ro3[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_4 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[5][1]).c_str(),0) - strtof((rovers_data[3][1]).c_str(),0);
+            ydif = strtof((rovers_data[5][2]).c_str(),0) - strtof((rovers_data[3][2]).c_str(),0);
+            di1_5 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_5 <= 2)
+            {
+                contained_di1_5 = true;
+                g_avg[0] = g_avg[0] + ro4[1];
+                g_avg[1] = g_avg[1] + ro4[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_5 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            xdif = strtof((rovers_data[5][1]).c_str(),0) - strtof((rovers_data[4][1]).c_str(),0);
+            ydif = strtof((rovers_data[5][2]).c_str(),0) - strtof((rovers_data[4][2]).c_str(),0);
+            d16 = sqrt(xdif*xdif + ydif*ydif);
+
+
+            if (di1_6 <= 2)
+            {
+                contained_di1_6 = true;
+                g_avg[0] = g_avg[0] + ro5[1];
+                g_avg[1] = g_avg[1] + ro5[0];
+
+
+                lo_positions[0] = lo_positions[0] + xdif;
+                lo_positions[1] = lo_positions[1] + ydif;
+                num_neighbors++;
+
+
+                if (di1_6 <= sep_distance)
+                {
+                    seperation[0] += xdif;
+                    seperation[1] += ydif;
+                }
+            }
+
+
+            if (num_neighbors == 1)
+            {
+                local_average = 0.0;
+            } else
+            {
+                g_avg[0] = g_avg[0] / num_neighbors;
+                g_avg[1] = g_avg[1] / num_neighbors;
+
+
+                local_average = atan2(g_avg[1], g_avg[0]);
+            }
 
 void globalAverageHeadingHandler(const std_msgs::String::ConstPtr& message)
 {
