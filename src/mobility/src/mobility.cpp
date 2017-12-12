@@ -149,7 +149,6 @@ public:
                 roverCount++;
             }
         }
-
         switch(roverCount) {
             case 0:
                 return 0.0;
